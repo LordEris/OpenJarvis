@@ -18,9 +18,14 @@ def validate_allowed_dirs(allowed_dirs: object) -> List[str]:
     return [os.fspath(directory) for directory in allowed_dirs]
 
 
+# Tools whose constructor takes ``allowed_dirs`` and must honour
+# ``[security] allowed_dirs`` from the caller's config.
+PATH_SCOPED_TOOLS = frozenset({"file_read", "file_write", "open_app"})
+
+
 def file_tool_kwargs(name: str, config: Any = None) -> dict[str, List[str]]:
-    """Bind native file tools to the caller's config when one was supplied."""
-    if name not in {"file_read", "file_write"} or config is None:
+    """Bind path-scoped tools to the caller's config when one was supplied."""
+    if name not in PATH_SCOPED_TOOLS or config is None:
         return {}
     return {"allowed_dirs": validate_allowed_dirs(config.security.allowed_dirs)}
 

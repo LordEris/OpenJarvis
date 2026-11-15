@@ -13,7 +13,13 @@ from rich.markup import escape
 
 from openjarvis.cli._runtime_panel import runtime_cli_options
 from openjarvis.cli._tool_names import resolve_tool_names
-from openjarvis.cli._voice_chat import VOICE_EXIT, VoiceSession, read_voice_input, speak
+from openjarvis.cli._voice_chat import (
+    VOICE_EXIT,
+    VoiceSession,
+    listen_for_command,
+    read_voice_input,
+    speak,
+)
 from openjarvis.core.config import load_config
 from openjarvis.core.events import EventBus
 from openjarvis.core.types import Message, Role
@@ -78,6 +84,17 @@ def _read_input(prompt: str = "You> ") -> Optional[str]:
     default=False,
     help="Enable voice I/O: mic input with silence detection + TTS response playback.",
 )
+@click.option(
+    "--wake",
+    "wake_mode",
+    is_flag=True,
+    default=False,
+    help=(
+        "Hands-free voice mode: keep listening and answer when a sentence "
+        "starts or ends with the wake word ([speech] wake_word, default "
+        "'Jarvis'). Implies --voice."
+    ),
+)
 @runtime_cli_options
 def chat(
     engine_key: str | None,
@@ -88,6 +105,7 @@ def chat(
     system_prompt: str | None,
     persona_name: str | None,
     voice_mode: bool,
+    wake_mode: bool,
     num_ctx: int | None,
     num_gpu: int | None,
     skip_runtime_panel: bool,
@@ -108,9 +126,12 @@ def chat(
       /history      — show conversation history
 
     Pass --voice to use microphone input (silence-detection) and hear responses
-    read back via text-to-speech (kokoro local or OpenAI TTS).
+    read back via text-to-speech (kokoro local or OpenAI TTS). Pass --wake for
+    hands-free use: say "Jarvis, ouvre Spotify" and it answers; say "au revoir"
+    or press Ctrl+C to stop.
     """
     console = Console(stderr=True)
+    voice_mode = voice_mode or wake_mode
 
     config = load_config()
     bus = EventBus(record_history=False)
@@ -296,12 +317,18 @@ def chat(
     voice_session = VoiceSession(config) if voice_mode else None
 
     # Print banner
-    voice_hint = (
-        "  [magenta]Voice mode ON[/magenta] — type normally, or press Enter "
-        "to speak; silence stops recording.\n"
-        if voice_mode
-        else ""
-    )
+    if wake_mode:
+        voice_hint = (
+            "  [magenta]Hands-free mode ON[/magenta] — start or end a sentence "
+            "with the wake word; say 'au revoir' or press Ctrl+C to stop.\n"
+        )
+    elif voice_mode:
+        voice_hint = (
+            "  [magenta]Voice mode ON[/magenta] — type normally, or press Enter "
+            "to speak; silence stops recording.\n"
+        )
+    else:
+        voice_hint = ""
     console.print(
         f"[green bold]OpenJarvis Chat[/green bold]\n"
         f"  Engine: [cyan]{_safe_rich_label(engine_name)}[/cyan]  "
@@ -369,7 +396,11 @@ def chat(
 
         if voice_mode:
             assert voice_session is not None
-            result = read_voice_input(console, voice_session)
+            result = (
+                listen_for_command(console, voice_session)
+                if wake_mode
+                else read_voice_input(console, voice_session)
+            )
             if result is VOICE_EXIT:
                 console.print("\n[dim]Goodbye![/dim]")
                 break
@@ -452,12 +483,15 @@ def chat(
                     min_score=config.memory.context_min_score,
                     max_context_tokens=config.memory.context_max_tokens,
                 )
+                from openjarvis.brain.recall import brain_for
+
                 context_messages = inject_context(
                     user_input,
                     [] if agent is not None else history,
                     memory_backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain_for(config),
                 )
                 if agent is not None:
                     if context_messages:

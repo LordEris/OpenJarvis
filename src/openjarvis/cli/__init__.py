@@ -102,6 +102,7 @@ if not _DATA_BOUNDARY_BOOTSTRAP:
     from openjarvis.cli.agent_cmd import agent
     from openjarvis.cli.ask import ask
     from openjarvis.cli.bench_cmd import bench
+    from openjarvis.cli.brain_cmd import brain
     from openjarvis.cli.channel_cmd import channel
     from openjarvis.cli.channels_cmd import channels
     from openjarvis.cli.chat_cmd import chat
@@ -140,6 +141,8 @@ if not _DATA_BOUNDARY_BOOTSTRAP:
     cli.add_command(serve, "serve")
     cli.add_command(model, "model")
     cli.add_command(memory, "memory")
+    cli.add_command(brain, "cerveau")
+    cli.add_command(brain, "brain")
     cli.add_command(mine, "mine")
     cli.add_command(pearl, "pearl")
     cli.add_command(telemetry, "telemetry")

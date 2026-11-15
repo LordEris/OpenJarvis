@@ -53,6 +53,8 @@ class QueryOrchestrator:
                     min_score=s.config.memory.context_min_score,
                     max_context_tokens=s.config.memory.context_max_tokens,
                 )
+                from openjarvis.brain.recall import brain_for
+
                 facts = load_configured_facts(s.config)
                 messages = inject_context(
                     query,
@@ -60,6 +62,7 @@ class QueryOrchestrator:
                     s.memory_backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain_for(s.config),
                 )
             except Exception as exc:
                 logger.warning("Failed to inject memory context: %s", exc)
@@ -338,6 +341,7 @@ class QueryOrchestrator:
     def _build_tools(self, tool_names: List[str]) -> List[BaseTool]:
         """Build tool instances from tool names."""
         from openjarvis.core.registry import ToolRegistry
+        from openjarvis.tools._paths import PATH_SCOPED_TOOLS, file_tool_kwargs
 
         s = self._system
         tools: List[BaseTool] = []
@@ -351,11 +355,7 @@ class QueryOrchestrator:
                     from openjarvis.tools.llm_tool import LLMTool
 
                     tools.append(LLMTool(s.engine, model=s.model))
-                elif name in {"file_read", "file_write"} and ToolRegistry.contains(
-                    name
-                ):
-                    from openjarvis.tools._paths import file_tool_kwargs
-
+                elif name in PATH_SCOPED_TOOLS and ToolRegistry.contains(name):
                     tools.append(
                         ToolRegistry.create(name, **file_tool_kwargs(name, s.config))
                     )

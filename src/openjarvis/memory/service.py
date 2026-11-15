@@ -265,7 +265,9 @@ def build_memory_service(
 
     Reads the ``[memory]`` section (``config.memory`` / ``config.tools.storage``)
     for ``enabled``, ``backend``, ``extraction_model``, ``max_facts`` and
-    ``facts_path``.  Returns ``None`` when memory is disabled or no engine /
+    ``facts_path``. When ``[brain]`` is enabled the service also writes what
+    it learns into the brain (see :mod:`openjarvis.brain.learning`).
+    Returns ``None`` when memory and the brain are disabled or no engine /
     extraction model is available, so callers can simply do::
 
         svc = build_memory_service(config, engine, model)
@@ -273,7 +275,12 @@ def build_memory_service(
             svc.start()
     """
     mem = getattr(config, "memory", None)
-    if mem is None or not getattr(mem, "enabled", False):
+    brain_cfg = getattr(config, "brain", None)
+    learn_brain = bool(
+        getattr(brain_cfg, "enabled", False)
+        and getattr(brain_cfg, "learn_from_conversations", True)
+    )
+    if not learn_brain and (mem is None or not getattr(mem, "enabled", False)):
         return None
     if engine is None:
         return None
@@ -288,6 +295,20 @@ def build_memory_service(
         path=getattr(mem, "facts_path", None),
         max_facts=getattr(mem, "max_facts", 1000),
     )
+    if learn_brain:
+        # The brain extends automatic memory: structured knowledge becomes
+        # linked pages, and the flat facts keep flowing into the store.
+        from openjarvis.brain.learning import BrainMemoryService, KnowledgeExtractor
+        from openjarvis.brain.recall import brain_dir
+        from openjarvis.brain.store import BrainStore
+
+        return BrainMemoryService(
+            store,
+            KnowledgeExtractor(engine, model),
+            BrainStore(brain_dir(config)),
+            event_bus=event_bus,
+            scanner=_build_scanner(),
+        )
     extractor = FactExtractor(engine, model)
     return MemoryService(
         store, extractor, event_bus=event_bus, scanner=_build_scanner()

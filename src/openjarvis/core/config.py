@@ -1636,6 +1636,9 @@ class SpeechConfig:
     tts_backend: str = "kokoro"  # "kokoro", "openai_tts", "cartesia", "elevenlabs"
     voice_id: str = "bm_george"
     voice_speed: float = 1.0
+    # Hands-free mode (`jarvis chat --wake`): comma-separated words that wake
+    # the assistant when said at the start or end of a sentence.
+    wake_word: str = "jarvis"
 
 
 @dataclass(slots=True)
@@ -1723,6 +1726,22 @@ class SkillsConfig:
     sources: List[SkillSourceConfig] = field(default_factory=list)
 
 
+@dataclass(slots=True)
+class BrainConfig:
+    """The brain: long-term knowledge as linked Markdown pages (an Obsidian vault).
+
+    When enabled, every chat exchange is mined in the background for durable
+    knowledge (who the user is, people, projects, topics...), written as pages
+    linked with ``[[wikilinks]]``, recalled into the context of later
+    questions, and drawn as a 3D galaxy by ``jarvis cerveau galaxie``.
+    """
+
+    enabled: bool = False
+    path: str = ""  # "" = ~/Documents/Cerveau
+    learn_from_conversations: bool = True
+    context_pages: int = 3  # brain pages recalled into each answer's context
+
+
 @dataclass
 class DigestSectionConfig:
     """Configuration for a single digest section."""
@@ -1799,6 +1818,7 @@ class JarvisConfig:
     compression: CompressionConfig = field(default_factory=CompressionConfig)
     skills: SkillsConfig = field(default_factory=SkillsConfig)
     digest: DigestConfig = field(default_factory=DigestConfig)
+    brain: BrainConfig = field(default_factory=BrainConfig)
     proactive: ProactiveConfig = field(default_factory=ProactiveConfig)
     mining: Optional["MiningConfig"] = None
 
@@ -2125,6 +2145,7 @@ def load_config(path: Optional[Path] = None) -> JarvisConfig:
             "optimize",
             "agent_manager",
             "digest",
+            "brain",
             "proactive",
             "memory_files",
             "system_prompt",

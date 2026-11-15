@@ -201,12 +201,15 @@ async def chat_completions(request_body: ChatCompletionRequest, request: Request
                     min_score=config.memory.context_min_score,
                     max_context_tokens=config.memory.context_max_tokens,
                 )
+                from openjarvis.brain.recall import brain_for
+
                 enriched = inject_context(
                     query_text,
                     messages,
                     memory_backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain_for(config),
                 )
                 # Rebuild after identity/context merging so downstream engine
                 # adapters always receive exactly one system message.

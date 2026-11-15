@@ -8,6 +8,8 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from openjarvis.cli.telegram_setup import setup_telegram
+
 _CHANNEL_TYPE_HELP = (
     "Channel type (sendblue, telegram, discord, slack, webhook, email, "
     "whatsapp, whatsapp_baileys, signal, google_chat, irc, webchat, teams, "
@@ -264,3 +266,6 @@ def channel_status(
     key = channel_type or config.channel.default_channel or "unknown"
     console.print(f"Channel: [cyan]{key}[/cyan]")
     console.print(f"Status: [{color}]{st.value}[/{color}]")
+
+
+channel.add_command(setup_telegram, "setup-telegram")

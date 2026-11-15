@@ -555,6 +555,7 @@ class Jarvis:
         # Context injection
         if context and self._config.agent.context_from_memory:
             try:
+                from openjarvis.brain.recall import brain_for
                 from openjarvis.cli.ask import _get_memory_backend, _get_memory_facts
                 from openjarvis.tools.storage.context import (
                     ContextConfig,
@@ -563,7 +564,8 @@ class Jarvis:
 
                 backend = _get_memory_backend(self._config)
                 facts = _get_memory_facts(self._config)
-                if backend is not None or facts:
+                brain = brain_for(self._config)
+                if backend is not None or facts or brain is not None:
                     ctx_cfg = ContextConfig(
                         top_k=self._config.memory.context_top_k,
                         min_score=self._config.memory.context_min_score,
@@ -575,6 +577,7 @@ class Jarvis:
                         backend,
                         config=ctx_cfg,
                         facts=facts,
+                        brain=brain,
                     )
                     for msg in context_messages:
                         ctx.conversation.add(msg)
@@ -605,12 +608,14 @@ class Jarvis:
     ) -> List[Message]:
         """Inject memory context into messages."""
         try:
+            from openjarvis.brain.recall import brain_for
             from openjarvis.cli.ask import _get_memory_backend, _get_memory_facts
             from openjarvis.tools.storage.context import ContextConfig, inject_context
 
             backend = _get_memory_backend(self._config)
             facts = _get_memory_facts(self._config)
-            if backend is not None or facts:
+            brain = brain_for(self._config)
+            if backend is not None or facts or brain is not None:
                 ctx_cfg = ContextConfig(
                     top_k=self._config.memory.context_top_k,
                     min_score=self._config.memory.context_min_score,
@@ -622,6 +627,7 @@ class Jarvis:
                     backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain,
                 )
         except Exception as exc:
             logger.warning("Failed to inject memory context: %s", exc)

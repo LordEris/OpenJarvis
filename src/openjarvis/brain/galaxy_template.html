@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galaxie de JARVIS</title>
+<style>
+  :root {
+    --bg: #04060d;
+    --panel: rgba(12, 18, 34, 0.86);
+    --border: rgba(122, 162, 255, 0.22);
+    --text: #e6ecf8;
+    --muted: #93a0b8;
+    --accent: #7bdff2;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
+  canvas.dragging { cursor: grabbing; }
+  .top { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 10px;
+    align-items: center; pointer-events: none; flex-wrap: wrap; }
+  .top > * { pointer-events: auto; }
+  .brand { font-weight: 700; letter-spacing: .18em; font-size: 13px; color: var(--accent);
+    text-shadow: 0 0 12px rgba(123, 223, 242, .6); }
+  .stats { color: var(--muted); font-size: 12px; }
+  .search { margin-left: auto; background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); border-radius: 999px; padding: 8px 14px; width: min(280px, 100%);
+    outline: none; font: inherit; }
+  .search:focus { border-color: var(--accent); }
+  .legend { position: fixed; left: 12px; bottom: 12px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; display: flex;
+    flex-direction: column; gap: 2px; max-width: calc(100vw - 24px); }
+  .legend button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    font-size: 12px; padding: 2px 4px; border-radius: 6px; }
+  .legend button:hover { background: rgba(255,255,255,.06); }
+  .legend button.off { opacity: .35; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .panel { position: fixed; top: 60px; right: 12px; bottom: 12px; width: min(380px, calc(100vw - 24px));
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+    overflow: auto; display: none; backdrop-filter: blur(6px); }
+  .panel.open { display: block; }
+  .panel h2 { margin: 0 28px 4px 0; font-size: 18px; }
+  .panel .meta { color: var(--muted); font-size: 12px; margin-bottom: 12px; display: flex; gap: 8px;
+    align-items: center; flex-wrap: wrap; }
+  .badge { border-radius: 999px; padding: 1px 8px; font-size: 11px; color: #04060d; font-weight: 600; }
+  .panel .body { white-space: pre-wrap; word-wrap: break-word; font-size: 13px; color: #cdd6e8; }
+  .panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    margin: 16px 0 6px; }
+  .links { display: flex; flex-wrap: wrap; gap: 6px; }
+  .links button { all: unset; cursor: pointer; border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 10px; font-size: 12px; }
+  .links button:hover { border-color: var(--accent); }
+  .path { margin-top: 14px; font-size: 11px; color: var(--muted); word-break: break-all; }
+  .close { all: unset; position: absolute; top: 10px; right: 12px; cursor: pointer; font-size: 20px;
+    color: var(--muted); padding: 2px 6px; }
+  .empty { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    text-align: center; color: var(--muted); padding: 24px; }
+  .empty.show { display: flex; }
+  .hint { position: fixed; right: 12px; bottom: 12px; color: var(--muted); font-size: 11px; }
+  @media (max-width: 640px) {
+    .panel { top: auto; height: 55vh; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div class="top">
+  <div class="brand">J.A.R.V.I.S · GALAXIE</div>
+  <div class="stats" id="stats"></div>
+  <input class="search" id="search" type="search" placeholder="Chercher une étoile…" autocomplete="off">
+</div>
+<div class="legend" id="legend"></div>
+<div class="panel" id="panel" role="dialog" aria-live="polite">
+  <button class="close" id="close" aria-label="Fermer">×</button>
+  <h2 id="p-title"></h2>
+  <div class="meta" id="p-meta"></div>
+  <div class="body" id="p-body"></div>
+  <h3 id="p-links-title">Liens</h3>
+  <div class="links" id="p-links"></div>
+  <div class="path" id="p-path"></div>
+</div>
+<div class="empty" id="empty">
+  <div>
+    <div style="font-size:40px">✦</div>
+    <p>Le cerveau de JARVIS est encore vide.<br>Parle-lui de toi et de tes projets : chaque chose qu'il apprend devient une étoile.</p>
+  </div>
+</div>
+<div class="hint">Glisser : tourner · Molette : zoomer · Clic : lire une étoile</div>
+
+<script id="galaxy-data" type="application/json">/*__GALAXY_DATA__*/</script>
+<script>
+(() => {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("galaxy-data").textContent || "{}");
+  const nodes = (DATA.nodes || []).map((n) => ({ ...n }));
+  const types = DATA.types || {};
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const links = (DATA.links || []).filter((l) => byId.has(l.source) && byId.has(l.target) && l.source !== l.target)
+    .map((l) => ({ s: byId.get(l.source), t: byId.get(l.target) }));
+  for (const n of nodes) { n.nb = new Set(); }
+  for (const l of links) { l.s.nb.add(l.t); l.t.nb.add(l.s); }
+
+  const colorOf = (n) => (types[n.type] && types[n.type].color) || "#e0e6f0";
+  const labelOf = (t) => (types[t] && types[t].label) || t;
+  const fold = (s) => (s || "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  // ---------- header, legend, empty state ----------
+  document.getElementById("stats").textContent =
+    `${nodes.length} étoile${nodes.length > 1 ? "s" : ""} · ${links.length} lien${links.length > 1 ? "s" : ""}` +
+    (DATA.generated ? ` · ${DATA.generated}` : "");
+  if (!nodes.length) document.getElementById("empty").classList.add("show");
+
+  const hidden = new Set();
+  const legend = document.getElementById("legend");
+  const counts = {};
+  for (const n of nodes) counts[n.type] = (counts[n.type] || 0) + 1;
+  for (const t of Object.keys(counts).sort((a, b) => counts[b] - counts[a])) {
+    const b = document.createElement("button");
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.background = (types[t] && types[t].color) || "#e0e6f0";
+    dot.style.boxShadow = `0 0 8px ${dot.style.background}`;
+    b.append(dot, document.createTextNode(`${labelOf(t)} · ${counts[t]}`));
+    b.onclick = () => { hidden.has(t) ? hidden.delete(t) : hidden.add(t); b.classList.toggle("off"); };
+    legend.append(b);
+  }
+  if (!nodes.length) legend.style.display = "none";
+
+  // ---------- 3D force layout (runs a few steps per frame: the galaxy forms) ----------
+  const N = nodes.length;
+  const K = 40;                       // ideal link length
+  const rand = (() => { let s = 42; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  for (const n of nodes) {
+    const u = rand() * 2 - 1, th = rand() * Math.PI * 2, r = 60 + rand() * 140;
+    const q = Math.sqrt(1 - u * u);
+    n.x = r * q * Math.cos(th); n.y = r * u * 0.6; n.z = r * q * Math.sin(th);
+    n.vx = n.vy = n.vz = 0;
+    n.deg = n.nb.size;
+    n.size = n.core ? 9 : 2.2 + Math.sqrt(n.deg) * 1.7;
+  }
+  // The brightest stars keep their name on screen.
+  const labelled = new Set(nodes.slice().sort((a, b) => b.deg - a.deg).slice(0, 18));
+  let temp = 1, steps = 0;
+  const MAX_STEPS = 420;
+  const sample = N > 900 ? 260 : N;   // large brains: sampled repulsion
+  function layoutStep() {
+    for (let i = 0; i < N; i++) {
+      const a = nodes[i];
+      let fx = -a.x * 0.002, fy = -a.y * 0.004, fz = -a.z * 0.002;   // gravity, flattened disc
+      for (let k = 0; k < sample; k++) {
+        const b = sample === N ? nodes[k] : nodes[(i + 1 + Math.floor(rand() * (N - 1))) % N];
+        if (b === a) continue;
+        let dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+        let d2 = dx * dx + dy * dy + dz * dz + 0.01;
+        const f = (K * K) / d2 * (sample === N ? 1 : N / sample) * 0.5;
+        const d = Math.sqrt(d2);
+        fx += dx / d * f; fy += dy / d * f; fz += dz / d * f;
+      }
+      a.fx = fx; a.fy = fy; a.fz = fz;
+    }
+    for (const l of links) {
+      const dx = l.t.x - l.s.x, dy = l.t.y - l.s.y, dz = l.t.z - l.s.z;
+      const d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+      const f = (d * d) / K * 0.02;
+      const ux = dx / d * f, uy = dy / d * f, uz = dz / d * f;
+      l.s.fx += ux; l.s.fy += uy; l.s.fz += uz;
+      l.t.fx -= ux; l.t.fy -= uy; l.t.fz -= uz;
+    }
+    const maxMove = 12 * temp;
+    for (const n of nodes) {
+      if (n.core) { n.x = n.y = n.z = 0; continue; }
+      let mx = n.fx, my = n.fy, mz = n.fz;
+      const m = Math.sqrt(mx * mx + my * my + mz * mz);
+      if (m > maxMove) { mx *= maxMove / m; my *= maxMove / m; mz *= maxMove / m; }
+      n.x += mx; n.y += my; n.z += mz;
+    }
+    temp = Math.max(0.02, temp * 0.992);
+    steps++;
+  }
+
+  // ---------- rendering ----------
+  const canvas = document.getElementById("sky");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const sprites = new Map();
+  function sprite(color) {
+    if (sprites.has(color)) return sprites.get(color);
+    const c = document.createElement("canvas"); c.width = c.height = 64;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.18, color);
+    grad.addColorStop(0.45, color + "55");
+    grad.addColorStop(1, color + "00");
+    g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+    sprites.set(color, c);
+    return c;
+  }
+  const dust = Array.from({ length: 260 }, () => ({ x: rand(), y: rand(), r: rand() * 1.1 + 0.2, a: rand() * 0.5 + 0.1 }));
+
+  const cam = { yaw: 0.6, pitch: 0.35, dist: 520, tx: 0, ty: 0, tz: 0 };
+  const goal = { tx: 0, ty: 0, tz: 0 };
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let idle = 0, hover = null, selected = null, query = "";
+
+  function project(n) {
+    const x = n.x - cam.tx, y = n.y - cam.ty, z = n.z - cam.tz;
+    const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+    const y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+    const depth = z2 + cam.dist;
+    if (depth < 10) return null;
+    const f = Math.min(W, H) * 0.9 / depth;
+    return { x: W / 2 + x1 * f, y: H / 2 + y2 * f, f, depth };
+  }
+
+  const visible = (n) => !hidden.has(n.type);
+  const matches = (n) => query && fold(n.title).includes(query);
+
+  function draw() {
+    ctx.fillStyle = "#04060d"; ctx.fillRect(0, 0, W, H);
+    for (const d of dust) {
+      ctx.globalAlpha = d.a;
+      ctx.fillStyle = "#c8d4ff";
+      ctx.beginPath();
+      ctx.arc(((d.x * W + cam.yaw * 18) % W + W) % W, ((d.y * H + cam.pitch * 18) % H + H) % H, d.r, 0, 6.283);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    for (const n of nodes) n.p = visible(n) ? project(n) : null;
+    const focus = selected || hover;
+
+    ctx.lineWidth = 1;
+    for (const l of links) {
+      const a = l.s.p, b = l.t.p;
+      if (!a || !b) continue;
+      const lit = focus && (l.s === focus || l.t === focus);
+      ctx.strokeStyle = lit ? colorOf(focus) : "#7aa2ff";
+      ctx.globalAlpha = lit ? 0.75 : (focus ? 0.05 : 0.13);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+
+    const order = nodes.filter((n) => n.p).sort((a, b) => b.p.depth - a.p.depth);
+    const labels = [];
+    for (const n of order) {
+      const dim = focus && n !== focus && !focus.nb.has(n);
+      const hit = matches(n);
+      const r = Math.max(1.2, n.size * n.p.f * 1.6) * (hit ? 1.6 : 1) * (n === focus ? 1.3 : 1);
+      ctx.globalAlpha = dim ? 0.22 : 1;
+      const s = sprite(hit ? "#ffffff" : colorOf(n));
+      ctx.drawImage(s, n.p.x - r * 2.2, n.p.y - r * 2.2, r * 4.4, r * 4.4);
+      n.p.r = r;
+      const near = focus && focus.nb.has(n);
+      if (n === focus || n === hover || hit || near || (!focus && labelled.has(n))) {
+        const priority = (n === focus ? 1e6 : 0) + (n === hover ? 5e5 : 0) + (hit ? 1e5 : 0)
+          + (near ? 1e4 : 0) + n.deg * 10 + n.p.f;
+        labels.push({ n, r, dim, priority });
+      }
+    }
+    // Names last, most important first, skipping any that would overlap.
+    labels.sort((a, b) => b.priority - a.priority);
+    const placed = [];
+    ctx.shadowColor = "rgba(2, 4, 10, 0.95)";
+    ctx.shadowBlur = 6;
+    for (const { n, r, dim } of labels) {
+      ctx.font = `${n === focus || n.core ? 600 : 400} ${n === focus ? 14 : 12}px system-ui, sans-serif`;
+      const w = ctx.measureText(n.title).width;
+      const box = { x: n.p.x + r * 1.6 + 4, y: n.p.y - 9, w, h: 14 };
+      if (placed.some((b) => box.x < b.x + b.w + 4 && b.x < box.x + box.w + 4 && box.y < b.y + b.h && b.y < box.y + box.h)) continue;
+      placed.push(box);
+      ctx.globalAlpha = dim ? 0.35 : Math.min(1, 0.5 + n.p.f * 0.5);
+      ctx.fillStyle = "#e6ecf8";
+      ctx.fillText(n.title, box.x, n.p.y + 4);
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  // Frame the galaxy until the user zooms by hand.
+  let autoFit = true, fitTick = 0;
+  function fit() {
+    if (!autoFit || !N || ++fitTick % 10) return;
+    const d = nodes.map((n) => Math.hypot(n.x, n.y, n.z)).sort((a, b) => a - b);
+    const r = d[Math.floor(d.length * 0.9)] || 50;
+    const target = Math.max(140, r * 2.3);
+    cam.dist += (target - cam.dist) * 0.25;
+  }
+
+  function frame() {
+    const t0 = performance.now();
+    while (steps < MAX_STEPS && performance.now() - t0 < 9) layoutStep();
+    fit();
+    cam.tx += (goal.tx - cam.tx) * 0.08; cam.ty += (goal.ty - cam.ty) * 0.08; cam.tz += (goal.tz - cam.tz) * 0.08;
+    if (!reduceMotion && !dragging && ++idle > 120) cam.yaw += 0.0012;
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- interaction ----------
+  let dragging = false, moved = 0, lastX = 0, lastY = 0;
+  const pointers = new Map();
+  let pinch = 0;
+  canvas.addEventListener("pointerdown", (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY; idle = 0;
+    canvas.classList.add("dragging");
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) zoom(pinch / d);
+      pinch = d; moved = 99; return;
+    }
+    if (dragging) {
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      moved += Math.abs(dx) + Math.abs(dy);
+      cam.yaw += dx * 0.005;
+      cam.pitch = Math.max(-1.4, Math.min(1.4, cam.pitch + dy * 0.005));
+      lastX = e.clientX; lastY = e.clientY; idle = 0;
+    } else {
+      hover = pick(e.clientX, e.clientY);
+      canvas.style.cursor = hover ? "pointer" : "grab";
+    }
+  });
+  const end = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = 0;
+    if (!pointers.size) {
+      dragging = false; canvas.classList.remove("dragging");
+      if (moved < 6) select(pick(e.clientX, e.clientY));
+    }
+  };
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoom(Math.exp(e.deltaY * 0.0012)); idle = 0; }, { passive: false });
+  function zoom(k) { autoFit = false; cam.dist = Math.max(60, Math.min(2400, cam.dist * k)); }
+
+  function pick(x, y) {
+    let best = null, bestD = Infinity;
+    for (const n of nodes) {
+      if (!n.p) continue;
+      const d = Math.hypot(n.p.x - x, n.p.y - y);
+      if (d < Math.max(10, (n.p.r || 3) + 6) && n.p.depth < bestD) { best = n; bestD = n.p.depth; }
+    }
+    return best;
+  }
+
+  const panel = document.getElementById("panel");
+  function select(n) {
+    selected = n;
+    if (!n) { panel.classList.remove("open"); return; }
+    goal.tx = n.x; goal.ty = n.y; goal.tz = n.z;
+    document.getElementById("p-title").textContent = n.title;
+    const meta = document.getElementById("p-meta");
+    meta.replaceChildren();
+    const badge = document.createElement("span");
+    badge.className = "badge"; badge.style.background = colorOf(n); badge.textContent = labelOf(n.type);
+    meta.append(badge);
+    if (n.updated) meta.append(document.createTextNode(`mis à jour le ${n.updated}`));
+    document.getElementById("p-body").textContent = n.excerpt || "";
+    const list = document.getElementById("p-links");
+    list.replaceChildren();
+    const nbs = [...n.nb].sort((a, b) => b.deg - a.deg);
+    document.getElementById("p-links-title").style.display = nbs.length ? "" : "none";
+    for (const m of nbs) {
+      const b = document.createElement("button");
+      b.textContent = m.title; b.style.borderColor = colorOf(m) + "88";
+      b.onclick = () => select(m);
+      list.append(b);
+    }
+    document.getElementById("p-path").textContent = n.path || "";
+    panel.classList.add("open");
+  }
+  document.getElementById("close").onclick = () => select(null);
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") select(null); });
+
+  const search = document.getElementById("search");
+  search.addEventListener("input", () => { query = fold(search.value.trim()); });
+  search.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || !query) return;
+    const hit = nodes.filter((n) => visible(n) && matches(n)).sort((a, b) => b.deg - a.deg)[0];
+    if (hit) select(hit);
+  });
+
+  const core = nodes.find((n) => n.core);
+  if (core && N < 3) select(core);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
