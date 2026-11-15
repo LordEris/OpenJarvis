@@ -225,7 +225,8 @@ BROWSER_TOOLS = {
     "browser_type",
     "web_browser",
 }
-GENERIC_NETWORK_TOOLS = {"http_request"}
+# open_app also opens arbitrary http(s) URLs in the user's browser.
+GENERIC_NETWORK_TOOLS = {"http_request", "open_app"}
 WEATHER_TOOLS = {"get_weather"}
 MARKET_DATA_TOOLS = {"fx_macro_data"}
 CHANNEL_OUTBOUND_TOOLS = {"channel_send"}
@@ -253,6 +254,10 @@ CLOUD_API_SURFACES = (
 OUTBOUND_TOOL_SURFACES = EXTERNAL_TOOL_SURFACES
 LOCAL_ACCESS_TOOLS = {
     "apply_patch",
+    "brain_galaxy",
+    "brain_read",
+    "brain_remember",
+    "brain_search",
     "calendar_search",
     "calendar_upcoming",
     "channel_list",
@@ -275,11 +280,13 @@ LOCAL_ACCESS_TOOLS = {
     "kg_query",
     "knowledge_search",
     "knowledge_sql",
+    "media_control",
     "memory_index",
     "memory_manage",
     "memory_retrieve",
     "memory_search",
     "memory_store",
+    "open_app",
     "pdf_extract",
     "queue_action",
     "record_decision",
@@ -287,6 +294,7 @@ LOCAL_ACCESS_TOOLS = {
     "retrieval",
     "shell_exec",
     "skill_manage",
+    "system_volume",
     "user_profile_manage",
 }
 

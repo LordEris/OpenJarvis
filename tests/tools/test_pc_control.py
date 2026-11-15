@@ -206,7 +206,10 @@ class TestOpenApp:
         outside = tmp_path / "outside.txt"
         outside.write_text("x")
         link = allowed / "link.txt"
-        link.symlink_to(outside)
+        try:
+            link.symlink_to(outside)
+        except OSError:
+            pytest.skip("symlinks need extra privileges on this platform")
         monkeypatch.setattr(
             pc_control, "_open_path_with_os", lambda p: pytest.fail("must not open")
         )

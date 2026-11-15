@@ -161,7 +161,7 @@ class TestCommand:
         assert result.exit_code == 0, result.output
         assert "@MonJarvisBot" in result.output
         assert TOKEN not in result.output
-        cfg = tomlkit.parse((tmp_path / "config.toml").read_text())
+        cfg = tomlkit.parse((tmp_path / "config.toml").read_text(encoding="utf-8"))
         assert cfg["channel"]["telegram"]["allowed_chat_ids"] == "4242"
         sent = [params for method, params in fake.calls if method == "sendMessage"]
         assert [p["chat_id"] for p in sent] == ["4242"]

@@ -102,7 +102,8 @@ class TestStore:
         path.parent.mkdir(parents=True)
         path.write_text(
             "---\ntags: [maison]\n---\n# Jardin\n\n"
-            "Mes notes à moi, sur [[Tomates]].\n\n## Plan\n- carré potager\n"
+            "Mes notes à moi, sur [[Tomates]].\n\n## Plan\n- carré potager\n",
+            encoding="utf-8",
         )
         assert brain.find("Jardin").type == "concept"  # from its folder
         brain.remember("Jardin", "Arrose le soir.", links=["Moi"], today=DAY)
@@ -110,7 +111,7 @@ class TestStore:
             "Jardin", "Compost en automne.", links=["Tomates", "Automne"],
             today=date(2026, 11, 16),
         )  # fmt: skip
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         assert "tags: [maison]" in text and "maj: 2026-11-16" in text
         assert "Mes notes à moi, sur [[Tomates]]." in text
         assert "## Plan\n- carré potager" in text
@@ -207,7 +208,8 @@ class TestLearning:
         assert [i.page for i in learned] == ["Moi"]
         assert [i.page for i in quarantined] == ["Note"]
         assert brain.find("Note") is None
-        journal = next((brain.root / "journal").glob("*.md")).read_text()
+        journal_page = next((brain.root / "journal").glob("*.md"))
+        journal = journal_page.read_text(encoding="utf-8")
         assert "[[Moi]] : Aime le jazz." in journal
 
     def test_memory_service_grows_the_brain_and_the_fact_store(self, brain, tmp_path):
