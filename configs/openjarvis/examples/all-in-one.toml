@@ -1,0 +1,101 @@
+# Tout-en-un (FR) — chat, code, recherche, mémoire et briefing du matin
+# 100 % local : Ollama pour le modèle, Kokoro pour la voix.
+# Copy to ~/.openjarvis/config.toml (or run: jarvis init --preset all-in-one --force)
+#
+# Installé automatiquement par scripts/setup-jarvis.sh (Linux) et
+# deploy/windows/setup-jarvis.ps1 (Windows), qui ajustent aussi le modèle
+# à la RAM de la machine.
+#
+# Utilisation :
+#   jarvis                                   # discuter (agent orchestrator + outils)
+#   jarvis gui                               # interface graphique dans le navigateur
+#   jarvis ask --agent deep_research "..."   # recherche approfondie avec citations
+#   jarvis memory index ~/Documents          # indexer tes documents pour la recherche
+#   jarvis connect gdrive                    # Gmail / Agenda / Tasks pour le briefing
+#   jarvis digest --fresh                    # générer et écouter le briefing du matin
+
+[engine]
+default = "ollama"
+
+[engine.ollama]
+host = "http://localhost:11434"
+
+[intelligence]
+default_model = "qwen3.5:9b"        # Ajusté selon la RAM par les scripts d'installation
+# default_model = "qwen3.5:4b"      # Plus rapide, pour 8 Go de RAM
+# default_model = "qwen3.5:27b"     # Meilleure qualité, 32 Go+ de RAM ou bon GPU
+
+[agent]
+default_agent = "orchestrator"      # Multi-tours, choisit lui-même ses outils
+max_turns = 10
+
+[system_prompt]
+prefix = """Tu es JARVIS, l'assistant personnel de l'utilisateur. \
+Réponds toujours en français, de façon claire et concise, sauf si on te demande une autre langue."""
+
+[tools]
+# Chaque outil listé ici est une permission accordée à l'agent.
+# shell_exec demande confirmation avant chaque commande dans `jarvis chat`.
+enabled = [
+    # Raisonnement
+    "think",
+    "calculator",
+    # Code et fichiers
+    "code_interpreter",
+    "file_read",
+    "file_write",
+    "shell_exec",
+    # Web
+    "web_search",
+    # Recherche dans tes documents indexés + mémoire
+    "knowledge_search",
+    "knowledge_sql",
+    "scan_chunks",
+    "memory_store",
+    "memory_search",
+    # Briefing du matin
+    "digest_collect",
+    "text_to_speech",
+]
+
+[tools.storage]
+default_backend = "sqlite"
+
+[security]
+# Seuls dossiers que file_read / file_write peuvent toucher (le reste du disque,
+# dont ~/.ssh et les mots de passe du navigateur, reste hors de portée).
+# Ajoute les tiens ici ; une liste vide [] retire toute restriction.
+allowed_dirs = ["~/Documents", "~/Desktop", "~/Bureau", "~/Downloads", "~/Téléchargements"]
+
+# ─── Voix (100 % local) ─────────────────────────────────────
+
+[speech]
+language = "fr"                     # Reconnaissance vocale (faster-whisper)
+tts_backend = "kokoro"              # Synthèse vocale locale
+voice_id = "ff_siwis"               # Voix française de Kokoro
+
+# ─── Briefing du matin ──────────────────────────────────────
+# Les sources non connectées sont ignorées. Pour Gmail / Agenda / Tasks :
+#   jarvis connect gdrive
+
+[digest]
+enabled = true
+schedule = "0 7 * * *"              # 7 h chaque matin
+timezone = "Europe/Paris"           # Change si besoin
+persona = "jarvis-fr"                # ~/.openjarvis/prompts/personas/jarvis-fr.md
+honorific = "monsieur"
+tts_backend = "kokoro"              # Local, aucune clé API
+voice_id = "ff_siwis"
+voice_speed = 1.0
+
+sections = ["messages", "calendar", "world"]
+
+[digest.messages]
+sources = ["gmail", "google_tasks"]
+
+[digest.calendar]
+sources = ["gcalendar"]
+
+[digest.world]
+sources = ["hackernews", "news_rss"]
+# Ajoute "weather" après avoir configuré une clé OpenWeatherMap
