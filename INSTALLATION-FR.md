@@ -58,6 +58,31 @@ Ton ancienne configuration, s'il y en avait une, est sauvegardée à côté (`co
 
 **Sécurité** : avant de lancer une commande système, JARVIS te demande la permission dans le terminal (dans l'app, ces commandes sont refusées). Il ne peut lire et écrire des fichiers que dans Documents, Bureau et Téléchargements ; pour changer la liste, modifie `allowed_dirs` dans la section `[security]` de la configuration.
 
+## Piloter le PC
+
+Demande simplement, à l'écrit ou à la voix :
+
+- « ouvre Spotify », « ouvre YouTube », « ouvre mon dossier Documents » ;
+- « mets le son à 30 % », « monte le son », « coupe le son » ;
+- « mets en pause », « musique suivante ».
+
+Par sécurité, JARVIS ne lance que les applications de ton menu Démarrer (Windows) ou de ton menu d'applications (Linux). Il n'ouvre que des liens `http`/`https`, et seulement des documents de tes dossiers autorisés, jamais des programmes ou des scripts.
+
+Sous Linux, `sudo apt install playerctl` rend le contrôle de la musique plus fiable.
+
+## Parler à JARVIS depuis ton téléphone (Telegram)
+
+1. Installe Telegram sur ton téléphone et crée un bot avec **@BotFather** (`/newbot`). Il te donne un jeton.
+2. Ferme l'app OpenJarvis, puis lance sur ton PC :
+
+```bash
+jarvis channel setup-telegram
+```
+
+3. Colle le jeton, puis envoie un message à ton bot depuis le téléphone : la commande reconnaît ton compte et n'autorise que lui.
+
+Le bot répond tant que JARVIS tourne sur le PC : l'app est ouverte, ou `jarvis start` a été lancé (`jarvis stop` pour l'arrêter). Depuis le téléphone, il peut ouvrir des applis, régler le son et la musique, ou chercher sur le web. Les commandes système restent bloquées à distance.
+
 ## Options
 
 **Linux** : ajoute les options après `bash -s --`, par exemple :
