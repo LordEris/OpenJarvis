@@ -171,8 +171,9 @@ PY
         fi
     fi
 
-    # ── 6. App de bureau reliée à ce fork ───────────────────────────────
+    # ── 6. App de bureau reliée à ce fork + raccourci mains libres ──────
     set_openjarvis_root "$src_dir"
+    install_voice_launcher "$src_dir"
     if ((install_app)); then
         step "App de bureau"
         install_desktop_app || warn "app non installée : télécharge-la sur https://github.com/open-jarvis/OpenJarvis/releases/latest"
@@ -225,6 +226,26 @@ set_openjarvis_root() {
     export OPENJARVIS_ROOT="$root"
 }
 
+# Raccourci « JARVIS (vocal) » dans le menu des applications : ouvre un
+# terminal en mode mains libres (« Jarvis, ouvre Spotify »).
+install_voice_launcher() {
+    local src="$1"
+    local apps="$HOME/.local/share/applications"
+    mkdir -p "$apps"
+    cat > "$apps/jarvis-vocal.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=JARVIS (vocal)
+Comment=Parle à JARVIS sans clavier : « Jarvis, ouvre Spotify »
+Exec=$HOME/.local/bin/jarvis chat --wake
+Icon=$src/frontend/src-tauri/icons/128x128.png
+Terminal=true
+Categories=Utility;
+EOF
+    chmod 644 "$apps/jarvis-vocal.desktop"
+    ok "raccourci « JARVIS (vocal) » ajouté au menu des applications"
+}
+
 install_desktop_app() {
     if [[ "$(uname -m)" != "x86_64" ]]; then
         warn "l'app de bureau Linux n'existe qu'en x86_64 (ta machine : $(uname -m))"
@@ -259,8 +280,11 @@ finish() {
         echo "  • L'app : menu des applications → « OpenJarvis »"
         echo "    (déconnecte-toi puis reconnecte-toi une fois pour qu'elle trouve ton fork)"
     fi
+    echo "  • Mains libres : menu des applications → « JARVIS (vocal) »,"
+    echo "    puis dis « Jarvis, ouvre Spotify » (« au revoir » pour arrêter)"
     echo "  • Dans un terminal :"
     echo "      jarvis                 discuter"
+    echo "      jarvis chat --wake     mode mains libres"
     echo "      jarvis gui             interface dans le navigateur"
     echo "      jarvis doctor          vérifier que tout va bien"
     echo "      jarvis connect gdrive  brancher Gmail / Agenda pour le briefing"

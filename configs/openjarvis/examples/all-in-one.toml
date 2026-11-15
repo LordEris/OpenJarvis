@@ -77,6 +77,7 @@ allowed_dirs = ["~/Documents", "~/Desktop", "~/Bureau", "~/Downloads", "~/Télé
 language = "fr"                     # Reconnaissance vocale (faster-whisper)
 tts_backend = "kokoro"              # Synthèse vocale locale
 voice_id = "ff_siwis"               # Voix française de Kokoro
+wake_word = "jarvis"                # Mode mains libres : jarvis chat --wake
 
 # ─── Briefing du matin ──────────────────────────────────────
 # Les sources non connectées sont ignorées. Pour Gmail / Agenda / Tasks :

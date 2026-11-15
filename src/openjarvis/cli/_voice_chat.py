@@ -65,6 +65,14 @@ class VoiceSession:
         config = self._config if self._config is not None else load_config()
         return (getattr(config.speech, "language", "") or "").strip() or None
 
+    def get_wake_words(self) -> list[str]:
+        """Return the normalized ``speech.wake_word`` list (default: jarvis)."""
+        from openjarvis.core.config import load_config
+        from openjarvis.speech.wake_word import parse_wake_words
+
+        config = self._config if self._config is not None else load_config()
+        return parse_wake_words(getattr(config.speech, "wake_word", "") or "jarvis")
+
     def get_tts_backend(self) -> Any:
         """Return a cached healthy TTS backend, falling through once per key."""
         if self._tts_backend is not None:
@@ -173,6 +181,91 @@ def record_voice(
         return None
 
 
+_WAKE_IDLE_SECONDS = 10.0  # mic chunk length while waiting for the wake word
+_FOLLOW_UP_SECONDS = 6.0  # time to start the request after a bare "Jarvis ?"
+
+
+def _transcribe(console: Any, session: VoiceSession, backend: Any, audio: bytes):
+    try:
+        result = backend.transcribe(
+            audio, format="wav", language=session.get_stt_language()
+        )
+    except Exception as exc:
+        console.print(f"[red]Transcription error: {_terminal_safe_text(exc)}[/red]")
+        return ""
+    return (result.text or "").strip()
+
+
+def listen_for_command(
+    console: Any,
+    session: VoiceSession,
+) -> Optional[str] | object:
+    """Hands-free input: wait until a sentence addresses the wake word.
+
+    Every sentence picked up by the microphone is transcribed locally; those
+    that do not start or end with the wake word are dropped. "Jarvis, ouvre
+    Spotify" returns "ouvre Spotify" directly; a bare "Jarvis ?" gets a short
+    spoken acknowledgement and the next sentence is the request. Saying "au
+    revoir" (or Ctrl+C) ends the session.
+    """
+    from openjarvis.speech.voice_io import record_until_silence
+    from openjarvis.speech.wake_word import (
+        extract_command,
+        has_speech,
+        is_stop_phrase,
+    )
+
+    backend = session.get_stt_backend()
+    if backend is None:
+        console.print(
+            "[red]No speech-to-text backend available. "
+            "Install the voice dependencies with: "
+            "pip install 'OpenJarvis[speech]'.[/red]"
+        )
+        return VOICE_EXIT
+    wake_words = session.get_wake_words()
+    label = _terminal_safe_text(wake_words[0].title())
+    console.print(f"[dim cyan]Listening for “{label}”… (Ctrl+C to quit)[/dim cyan]")
+
+    def record(startup: float) -> bytes | object:
+        try:
+            return record_until_silence(startup_silence_seconds=startup)
+        except KeyboardInterrupt:
+            return VOICE_EXIT
+        except Exception as exc:
+            console.print(f"[red]Mic error: {_terminal_safe_text(exc)}[/red]")
+            return VOICE_EXIT
+
+    while True:
+        audio = record(_WAKE_IDLE_SECONDS)
+        if audio is VOICE_EXIT:
+            return VOICE_EXIT
+        assert isinstance(audio, bytes)
+        if not has_speech(audio):
+            continue
+        heard = _transcribe(console, session, backend, audio)
+        command = extract_command(heard, wake_words) if heard else None
+        if command is None:
+            continue  # not addressed to the assistant
+        if not command:
+            language = (session.get_stt_language() or "").lower()
+            speak("Oui ?" if language.startswith("fr") else "Yes?", console, session)
+            audio = record(_FOLLOW_UP_SECONDS)
+            if audio is VOICE_EXIT:
+                return VOICE_EXIT
+            assert isinstance(audio, bytes)
+            if not has_speech(audio):
+                continue
+            heard = _transcribe(console, session, backend, audio)
+            command = extract_command(heard, wake_words) or heard
+            if not command:
+                continue
+        if is_stop_phrase(command):
+            return VOICE_EXIT
+        console.print(f"[bold]You (voice):[/bold] {_terminal_safe_text(command)}")
+        return command
+
+
 def speak(text: str, console: Any, session: VoiceSession | None = None) -> None:
     """Synthesize and play text, reusing a healthy backend for the session."""
     from openjarvis.speech.voice_io import play_wav
@@ -211,4 +304,11 @@ def speak(text: str, console: Any, session: VoiceSession | None = None) -> None:
     )
 
 
-__all__ = ["VOICE_EXIT", "VoiceSession", "read_voice_input", "record_voice", "speak"]
+__all__ = [
+    "VOICE_EXIT",
+    "VoiceSession",
+    "listen_for_command",
+    "read_voice_input",
+    "record_voice",
+    "speak",
+]

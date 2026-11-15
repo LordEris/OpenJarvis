@@ -234,7 +234,29 @@ uv run --project "%SRC%" --no-dev $($extras -join ' ') jarvis %*
         Write-Warn "Ollama introuvable : relance ce script dans un nouveau PowerShell"
     }
 
-    # -- 6. App de bureau reliee a ce fork ---------------------------------
+    # -- 6. Raccourci mains libres "JARVIS (vocal)" -------------------------
+    try {
+        $wsh = New-Object -ComObject WScript.Shell
+        $icon = Join-Path $srcDir 'frontend\src-tauri\icons\icon.ico'
+        $lnkPaths = @(
+            (Join-Path ([Environment]::GetFolderPath('Programs')) 'JARVIS (vocal).lnk'),
+            (Join-Path ([Environment]::GetFolderPath('Desktop')) 'JARVIS (vocal).lnk')
+        )
+        foreach ($lnkPath in $lnkPaths) {
+            $lnk = $wsh.CreateShortcut($lnkPath)
+            $lnk.TargetPath = $shimPath
+            $lnk.Arguments = 'chat --wake'
+            $lnk.WorkingDirectory = $HOME
+            $lnk.IconLocation = $icon
+            $lnk.Description = 'Parle a JARVIS sans clavier : "Jarvis, ouvre Spotify"'
+            $lnk.Save()
+        }
+        Write-Ok "raccourci 'JARVIS (vocal)' cree (menu Demarrer et bureau)"
+    } catch {
+        Write-Warn "raccourci vocal non cree : $($_.Exception.Message)"
+    }
+
+    # -- 7. App de bureau reliee a ce fork ---------------------------------
     # L'app cherche le code source via OPENJARVIS_ROOT.
     [Environment]::SetEnvironmentVariable('OPENJARVIS_ROOT', $srcDir, 'User')
     $env:OPENJARVIS_ROOT = $srcDir
@@ -269,8 +291,11 @@ uv run --project "%SRC%" --no-dev $($extras -join ' ') jarvis %*
     if ($appInstalled) {
         Write-Host "  - L'app : menu Demarrer -> 'OpenJarvis'"
     }
+    Write-Host "  - Mains libres : raccourci 'JARVIS (vocal)' sur le bureau,"
+    Write-Host "    puis dis 'Jarvis, ouvre Spotify' ('au revoir' pour arreter)"
     Write-Host "  - Dans un NOUVEAU PowerShell :"
     Write-Host "      jarvis                 discuter"
+    Write-Host "      jarvis chat --wake     mode mains libres"
     Write-Host "      jarvis gui             interface dans le navigateur"
     Write-Host "      jarvis doctor          verifier que tout va bien"
     Write-Host "      jarvis connect gdrive  brancher Gmail / Agenda pour le briefing"

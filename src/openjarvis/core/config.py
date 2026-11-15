@@ -1636,6 +1636,9 @@ class SpeechConfig:
     tts_backend: str = "kokoro"  # "kokoro", "openai_tts", "cartesia", "elevenlabs"
     voice_id: str = "bm_george"
     voice_speed: float = 1.0
+    # Hands-free mode (`jarvis chat --wake`): comma-separated words that wake
+    # the assistant when said at the start or end of a sentence.
+    wake_word: str = "jarvis"
 
 
 @dataclass(slots=True)

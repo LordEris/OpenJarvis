@@ -58,6 +58,16 @@ Ton ancienne configuration, s'il y en avait une, est sauvegardée à côté (`co
 
 **Sécurité** : avant de lancer une commande système, JARVIS te demande la permission dans le terminal (dans l'app, ces commandes sont refusées). Il ne peut lire et écrire des fichiers que dans Documents, Bureau et Téléchargements ; pour changer la liste, modifie `allowed_dirs` dans la section `[security]` de la configuration.
 
+## Mode mains libres (« Jarvis, … »)
+
+Lance le raccourci **JARVIS (vocal)**, sur le bureau (Windows) ou dans le menu des applications (Linux), ou tape `jarvis chat --wake`. JARVIS écoute en continu et réagit dès qu'une phrase commence ou finit par son nom :
+
+- « Jarvis, ouvre Spotify » : il le fait directement ;
+- « Jarvis ? » : il répond « Oui ? » et écoute ta demande ;
+- « Jarvis, au revoir » (ou Ctrl+C) : il s'arrête.
+
+Tout reste sur ton PC : chaque phrase est transcrite en local, et celles qui ne s'adressent pas à JARVIS sont ignorées. Pour changer de nom, par exemple « Vendredi » : `jarvis config set speech.wake_word vendredi`.
+
 ## Piloter le PC
 
 Demande simplement, à l'écrit ou à la voix :
