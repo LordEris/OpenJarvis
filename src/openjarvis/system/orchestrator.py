@@ -338,6 +338,7 @@ class QueryOrchestrator:
     def _build_tools(self, tool_names: List[str]) -> List[BaseTool]:
         """Build tool instances from tool names."""
         from openjarvis.core.registry import ToolRegistry
+        from openjarvis.tools._paths import PATH_SCOPED_TOOLS, file_tool_kwargs
 
         s = self._system
         tools: List[BaseTool] = []
@@ -351,11 +352,7 @@ class QueryOrchestrator:
                     from openjarvis.tools.llm_tool import LLMTool
 
                     tools.append(LLMTool(s.engine, model=s.model))
-                elif name in {"file_read", "file_write"} and ToolRegistry.contains(
-                    name
-                ):
-                    from openjarvis.tools._paths import file_tool_kwargs
-
+                elif name in PATH_SCOPED_TOOLS and ToolRegistry.contains(name):
                     tools.append(
                         ToolRegistry.create(name, **file_tool_kwargs(name, s.config))
                     )

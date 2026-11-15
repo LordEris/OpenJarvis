@@ -322,6 +322,7 @@ def _build_tools(
     hallucinated or dropped replies downstream.
     """
     from openjarvis.core.registry import ToolRegistry
+    from openjarvis.tools._paths import PATH_SCOPED_TOOLS, file_tool_kwargs
 
     tools = []
     for name in tool_names:
@@ -355,9 +356,7 @@ def _build_tools(
             tools.append(tool_cls(channel=channel))
         elif name == "llm":
             tools.append(tool_cls(engine=engine, model=model_name))
-        elif name in {"file_read", "file_write"}:
-            from openjarvis.tools._paths import file_tool_kwargs
-
+        elif name in PATH_SCOPED_TOOLS:
             tools.append(tool_cls(**file_tool_kwargs(name, config)))
         else:
             tools.append(tool_cls())

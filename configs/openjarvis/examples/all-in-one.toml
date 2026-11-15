@@ -47,6 +47,10 @@ enabled = [
     "shell_exec",
     # Web
     "web_search",
+    # Piloter le PC : ouvrir une appli / un site / un fichier, volume, musique
+    "open_app",
+    "system_volume",
+    "media_control",
     # Recherche dans tes documents indexés + mémoire
     "knowledge_search",
     "knowledge_sql",

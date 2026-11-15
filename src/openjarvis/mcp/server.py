@@ -14,6 +14,7 @@ from openjarvis.mcp.protocol import (
     MCPRequest,
     MCPResponse,
 )
+from openjarvis.tools._paths import PATH_SCOPED_TOOLS
 from openjarvis.tools._stubs import BaseTool, ToolExecutor
 
 logger = logging.getLogger(__name__)
@@ -194,7 +195,7 @@ class MCPServer:
 
         for cls in _tool_classes:
             try:
-                if getattr(cls, "tool_id", None) in {"file_read", "file_write"}:
+                if getattr(cls, "tool_id", None) in PATH_SCOPED_TOOLS:
                     tools.append(cls(allowed_dirs=allowed_dirs))
                 else:
                     tools.append(cls())
@@ -211,7 +212,7 @@ class MCPServer:
                     try:
                         kwargs = (
                             {"allowed_dirs": allowed_dirs}
-                            if key in {"file_read", "file_write"}
+                            if key in PATH_SCOPED_TOOLS
                             else {}
                         )
                         tool = ToolRegistry.create(key, **kwargs)

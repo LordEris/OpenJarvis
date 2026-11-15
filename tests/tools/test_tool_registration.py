@@ -102,6 +102,10 @@ EXPECTED_TOOLS = {
     "get_pending_actions",
     "record_decision",
     "execute_pending_actions",
+    # pc_control.py
+    "open_app",
+    "system_volume",
+    "media_control",
 }
 
 
