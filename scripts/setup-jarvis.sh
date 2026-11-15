@@ -99,6 +99,9 @@ main() {
         fi
         git -C "$src_dir" merge --ff-only "origin/$branch" \
             || fail "des modifications locales dans $src_dir bloquent la mise à jour. Règle-les (git status) puis relance."
+    elif [[ "$repo_url" == file://* || -e "$repo_url" ]]; then
+        # Dépôt local : pas de clone partiel (git ne sait pas filtrer en local).
+        git clone --branch "$branch" "$repo_url" "$src_dir"
     else
         git clone --filter=blob:none --branch "$branch" "$repo_url" "$src_dir"
     fi
@@ -247,7 +250,7 @@ finish() {
     local model="$1" install_app="$2"
     printf '\n\033[1;32m'
     echo "  ┌──────────────────────────────────────┐"
-    echo "  │        JARVIS est prêt, monsieur.     │"
+    echo "  │        JARVIS est prêt, monsieur.    │"
     echo "  └──────────────────────────────────────┘"
     printf '\033[0m\n'
     echo "  Modèle : $model (100 % local, via Ollama)"

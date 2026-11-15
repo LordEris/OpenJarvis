@@ -126,7 +126,12 @@ function Invoke-JarvisSetup {
             Stop-Setup "des modifications locales dans $srcDir bloquent la mise a jour (git status), regle-les puis relance."
         }
     } else {
-        & git clone --filter=blob:none --branch $branch $repoUrl $srcDir
+        # Depot local : pas de clone partiel (git ne sait pas filtrer en local).
+        if ($repoUrl -like 'file://*' -or (Test-Path -LiteralPath $repoUrl -ErrorAction SilentlyContinue)) {
+            & git clone --branch $branch $repoUrl $srcDir
+        } else {
+            & git clone --filter=blob:none --branch $branch $repoUrl $srcDir
+        }
         if ($LASTEXITCODE -ne 0) { Stop-Setup "git clone a echoue" }
     }
     Write-Ok "code dans $srcDir"
