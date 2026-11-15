@@ -1,4 +1,4 @@
-# Tout-en-un (FR) — chat, code, recherche, mémoire et briefing du matin
+# Tout-en-un (FR) — chat, code, PC, mémoire qui apprend, voix et briefing du matin
 # 100 % local : Ollama pour le modèle, Kokoro pour la voix.
 # Copy to ~/.openjarvis/config.toml (or run: jarvis init --preset all-in-one --force)
 #
@@ -13,6 +13,8 @@
 #   jarvis memory index ~/Documents          # indexer tes documents pour la recherche
 #   jarvis connect gdrive                    # Gmail / Agenda / Tasks pour le briefing
 #   jarvis digest --fresh                    # générer et écouter le briefing du matin
+#   jarvis cerveau galaxie                   # voir ce que JARVIS a appris, en étoiles
+#   jarvis cerveau apprendre fichier.pdf     # lui faire apprendre un document
 
 [engine]
 default = "ollama"
@@ -31,7 +33,14 @@ max_turns = 10
 
 [system_prompt]
 prefix = """Tu es JARVIS, l'assistant personnel de l'utilisateur. \
-Réponds toujours en français, de façon claire et concise, sauf si on te demande une autre langue."""
+Réponds toujours en français, de façon claire et concise, sauf si on te demande une autre langue.
+
+Tu as une mémoire à long terme, ton cerveau, qui grandit avec chaque conversation. \
+Ce que tu sais déjà apparaît dans le contexte sous « cerveau/... ». \
+Utilise brain_search pour retrouver ce que tu sais avant de répondre sur l'utilisateur, \
+ses proches ou ses projets. Quand l'utilisateur te confie quelque chose d'important \
+ou te demande de le retenir, enregistre-le avec brain_remember. \
+S'il veut voir ce que tu sais, montre-lui ta galaxie avec brain_galaxy."""
 
 [tools]
 # Chaque outil listé ici est une permission accordée à l'agent.
@@ -51,16 +60,16 @@ enabled = [
     "open_app",
     "system_volume",
     "media_control",
-    # Recherche dans tes documents indexés + mémoire
+    # Mémoire à long terme : le cerveau (voir [brain] plus bas)
+    "brain_search",
+    "brain_read",
+    "brain_remember",
+    "brain_galaxy",
+    # Recherche dans tes documents indexés (jarvis memory index ~/Documents)
     "knowledge_search",
-    "knowledge_sql",
-    "scan_chunks",
-    "memory_store",
-    "memory_search",
-    # Briefing du matin
-    "digest_collect",
-    "text_to_speech",
 ]
+# Le briefing du matin ajoute lui-même ses outils (digest_collect, text_to_speech).
+# Garder la liste courte aide les petits modèles locaux à choisir le bon outil.
 
 [tools.storage]
 default_backend = "sqlite"
@@ -70,6 +79,17 @@ default_backend = "sqlite"
 # dont ~/.ssh et les mots de passe du navigateur, reste hors de portée).
 # Ajoute les tiens ici ; une liste vide [] retire toute restriction.
 allowed_dirs = ["~/Documents", "~/Desktop", "~/Bureau", "~/Downloads", "~/Téléchargements"]
+
+# ─── Cerveau : ce que JARVIS apprend ───────────────────────
+# Après chaque échange, JARVIS note en arrière-plan ce qu'il a appris (toi, tes
+# proches, tes projets, tes sujets) dans des pages Markdown reliées entre elles.
+# Le dossier s'ouvre aussi comme un coffre Obsidian : tu peux tout lire et corriger.
+
+[brain]
+enabled = true
+# path = "~/Documents/Cerveau"       # Défaut : Documents/Cerveau
+learn_from_conversations = true
+context_pages = 3                    # Pages rappelées pour chaque question
 
 # ─── Voix (100 % local) ─────────────────────────────────────
 

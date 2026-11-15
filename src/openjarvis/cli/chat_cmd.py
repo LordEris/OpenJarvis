@@ -483,12 +483,15 @@ def chat(
                     min_score=config.memory.context_min_score,
                     max_context_tokens=config.memory.context_max_tokens,
                 )
+                from openjarvis.brain.recall import brain_for
+
                 context_messages = inject_context(
                     user_input,
                     [] if agent is not None else history,
                     memory_backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain_for(config),
                 )
                 if agent is not None:
                     if context_messages:

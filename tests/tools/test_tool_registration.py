@@ -106,6 +106,11 @@ EXPECTED_TOOLS = {
     "open_app",
     "system_volume",
     "media_control",
+    # brain_tools.py
+    "brain_search",
+    "brain_read",
+    "brain_remember",
+    "brain_galaxy",
 }
 
 

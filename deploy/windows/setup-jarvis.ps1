@@ -251,7 +251,16 @@ uv run --project "%SRC%" --no-dev $($extras -join ' ') jarvis %*
             $lnk.Description = 'Parle a JARVIS sans clavier : "Jarvis, ouvre Spotify"'
             $lnk.Save()
         }
-        Write-Ok "raccourci 'JARVIS (vocal)' cree (menu Demarrer et bureau)"
+        $galaxy = $wsh.CreateShortcut(
+            (Join-Path ([Environment]::GetFolderPath('Programs')) 'JARVIS - Galaxie.lnk'))
+        $galaxy.TargetPath = $shimPath
+        $galaxy.Arguments = 'cerveau galaxie'
+        $galaxy.WorkingDirectory = $HOME
+        $galaxy.IconLocation = $icon
+        $galaxy.WindowStyle = 7  # console minimisee : seule la galaxie s'affiche
+        $galaxy.Description = 'Tout ce que JARVIS a appris, en etoiles'
+        $galaxy.Save()
+        Write-Ok "raccourcis 'JARVIS (vocal)' et 'JARVIS - Galaxie' crees"
     } catch {
         Write-Warn "raccourci vocal non cree : $($_.Exception.Message)"
     }
@@ -293,6 +302,8 @@ uv run --project "%SRC%" --no-dev $($extras -join ' ') jarvis %*
     }
     Write-Host "  - Mains libres : raccourci 'JARVIS (vocal)' sur le bureau,"
     Write-Host "    puis dis 'Jarvis, ouvre Spotify' ('au revoir' pour arreter)"
+    Write-Host "  - Sa memoire : menu Demarrer -> 'JARVIS - Galaxie'"
+    Write-Host "    (le cerveau est dans Documents\Cerveau, lisible avec Obsidian)"
     Write-Host "  - Dans un NOUVEAU PowerShell :"
     Write-Host "      jarvis                 discuter"
     Write-Host "      jarvis chat --wake     mode mains libres"

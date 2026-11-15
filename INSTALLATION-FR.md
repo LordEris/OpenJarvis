@@ -68,6 +68,28 @@ Lance le raccourci **JARVIS (vocal)**, sur le bureau (Windows) ou dans le menu d
 
 Tout reste sur ton PC : chaque phrase est transcrite en local, et celles qui ne s'adressent pas à JARVIS sont ignorées. Pour changer de nom, par exemple « Vendredi » : `jarvis config set speech.wake_word vendredi`.
 
+## Le cerveau : JARVIS apprend
+
+Après chaque conversation, JARVIS note en arrière-plan ce qu'il a appris : qui tu es, tes proches, tes projets, ce qui t'intéresse. Chaque chose devient une page de `Documents/Cerveau`, reliée aux autres, et il s'en sert pour te répondre les fois suivantes.
+
+- « Jarvis, retiens que l'anniversaire d'Alice est le 3 mars » : il l'enregistre tout de suite.
+- « Qu'est-ce que tu sais sur mon projet de voyage ? » : il cherche dans son cerveau.
+- `jarvis cerveau apprendre document.pdf` : il lit un document (`.pdf`, `.txt`, `.md`) et en retient l'essentiel.
+- `jarvis cerveau chercher Alice` ou `jarvis cerveau etat` : tu vois ce qu'il sait.
+
+### La galaxie
+
+Ouvre-la avec le raccourci **JARVIS – Galaxie**, en disant « Jarvis, montre-moi ta galaxie », ou avec `jarvis cerveau galaxie`. Chaque connaissance est une étoile reliée aux autres. Toi, tu es au centre, en doré. Plus une étoile a de liens, plus elle brille. Fais glisser pour tourner, utilise la molette pour zoomer, et clique sur une étoile pour lire ce qu'il sait. La recherche en haut retrouve une étoile par son nom.
+
+### Garder la main
+
+- Les pages sont de simples fichiers Markdown : ouvre le dossier dans [Obsidian](https://obsidian.md) (« Ouvrir un dossier comme coffre ») pour tout lire, corriger ou supprimer.
+- JARVIS ne réécrit que ses sections « Ce que je sais » et « Liens » : ce que tu écris toi-même dans une page est conservé.
+- Le dossier `journal/` garde la trace de ce qu'il a appris chaque jour.
+- Pour qu'il arrête d'apprendre tout seul : `jarvis config set brain.learn_from_conversations false`.
+
+La qualité de ce qu'il retient dépend du modèle : un petit modèle (2b ou 4b) apprend moins bien et peut se tromper, alors relis son cerveau de temps en temps. Les conversations Telegram ne l'alimentent pas.
+
 ## Piloter le PC
 
 Demande simplement, à l'écrit ou à la voix :

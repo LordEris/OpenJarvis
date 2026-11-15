@@ -53,6 +53,8 @@ class QueryOrchestrator:
                     min_score=s.config.memory.context_min_score,
                     max_context_tokens=s.config.memory.context_max_tokens,
                 )
+                from openjarvis.brain.recall import brain_for
+
                 facts = load_configured_facts(s.config)
                 messages = inject_context(
                     query,
@@ -60,6 +62,7 @@ class QueryOrchestrator:
                     s.memory_backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain_for(s.config),
                 )
             except Exception as exc:
                 logger.warning("Failed to inject memory context: %s", exc)

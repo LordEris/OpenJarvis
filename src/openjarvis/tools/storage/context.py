@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence
 
 from openjarvis.core.events import EventType, get_event_bus
 from openjarvis.core.types import Message, Role
@@ -13,6 +14,8 @@ from openjarvis.tools.storage._stubs import MemoryBackend, RetrievalResult
 
 if TYPE_CHECKING:
     from openjarvis.memory.store import Fact
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -145,6 +148,7 @@ def inject_context(
     *,
     config: Optional[ContextConfig] = None,
     facts: Sequence[Fact] = (),
+    brain: Optional[Any] = None,
 ) -> List[Message]:
     """Retrieve relevant context and prepend it to *messages*.
 
@@ -168,12 +172,23 @@ def inject_context(
         Durable facts captured by the automatic memory service. Quarantined
         provenance tiers are excluded before budgeting or prompt construction,
         as are retrieved documents carrying the same quarantined tiers.
+    brain:
+        Optional :class:`~openjarvis.brain.store.BrainStore`. Its pages that
+        match the query (and the user's own page) are recalled first, ahead of
+        indexed documents.
     """
     cfg = config or ContextConfig()
     if not cfg.enabled:
         return messages
 
     results = backend.retrieve(query, top_k=cfg.top_k) if backend is not None else []
+    if brain is not None:
+        try:
+            from openjarvis.brain.recall import brain_results
+
+            results = brain_results(brain, query) + list(results)
+        except Exception:  # noqa: BLE001 - recall is best-effort
+            logger.debug("Brain recall failed", exc_info=True)
 
     # Drop quarantined-provenance documents before anything else, so a
     # hostile document cannot consume context budget it will never be

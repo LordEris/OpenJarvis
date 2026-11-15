@@ -242,8 +242,18 @@ Icon=$src/frontend/src-tauri/icons/128x128.png
 Terminal=true
 Categories=Utility;
 EOF
-    chmod 644 "$apps/jarvis-vocal.desktop"
-    ok "raccourci « JARVIS (vocal) » ajouté au menu des applications"
+    cat > "$apps/jarvis-galaxie.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=JARVIS – Galaxie
+Comment=Tout ce que JARVIS a appris, en étoiles
+Exec=$HOME/.local/bin/jarvis cerveau galaxie
+Icon=$src/frontend/src-tauri/icons/128x128.png
+Terminal=false
+Categories=Utility;
+EOF
+    chmod 644 "$apps/jarvis-vocal.desktop" "$apps/jarvis-galaxie.desktop"
+    ok "raccourcis « JARVIS (vocal) » et « JARVIS – Galaxie » ajoutés au menu"
 }
 
 install_desktop_app() {
@@ -282,6 +292,8 @@ finish() {
     fi
     echo "  • Mains libres : menu des applications → « JARVIS (vocal) »,"
     echo "    puis dis « Jarvis, ouvre Spotify » (« au revoir » pour arrêter)"
+    echo "  • Sa mémoire : menu des applications → « JARVIS – Galaxie »"
+    echo "    (le cerveau est dans ~/Documents/Cerveau, lisible avec Obsidian)"
     echo "  • Dans un terminal :"
     echo "      jarvis                 discuter"
     echo "      jarvis chat --wake     mode mains libres"

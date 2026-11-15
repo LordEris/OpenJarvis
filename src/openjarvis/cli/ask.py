@@ -534,11 +534,13 @@ def _run_agent(
     # Inject memory context into conversation if available
     if config.agent.context_from_memory:
         try:
+            from openjarvis.brain.recall import brain_for
             from openjarvis.tools.storage.context import ContextConfig, inject_context
 
             backend = _get_memory_backend(config)
             facts = _get_memory_facts(config)
-            if backend is not None or facts:
+            brain = brain_for(config)
+            if backend is not None or facts or brain is not None:
                 ctx_cfg = ContextConfig(
                     top_k=config.memory.context_top_k,
                     min_score=config.memory.context_min_score,
@@ -550,6 +552,7 @@ def _run_agent(
                     backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain,
                 )
                 for msg in context_messages:
                     ctx.conversation.add(msg)
@@ -1167,6 +1170,7 @@ def ask(
     # Memory-augmented context injection
     if not no_context and config.agent.context_from_memory:
         try:
+            from openjarvis.brain.recall import brain_for
             from openjarvis.tools.storage.context import (
                 ContextConfig,
                 inject_context,
@@ -1174,7 +1178,8 @@ def ask(
 
             backend = _get_memory_backend(config)
             facts = _get_memory_facts(config)
-            if backend is not None or facts:
+            brain = brain_for(config)
+            if backend is not None or facts or brain is not None:
                 ctx_cfg = ContextConfig(
                     top_k=config.memory.context_top_k,
                     min_score=config.memory.context_min_score,
@@ -1186,6 +1191,7 @@ def ask(
                     backend,
                     config=ctx_cfg,
                     facts=facts,
+                    brain=brain,
                 )
         except Exception as exc:
             logger.debug("Failed to inject memory context: %s", exc)
